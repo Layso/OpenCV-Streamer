@@ -3,21 +3,13 @@
 
 
 bool Streamer::keepServing;
-cv::Mat Streamer::frame;
-cv::VideoCapture Streamer::cap;
-
-
-Streamer::Streamer() {
-  sentCount = 0;
-  serverSocket = 0;
-  maximumClients = 0;
-}
+cv::VideoCapture Streamer::frameSource;
 
 
 
 void Streamer::EndConnection() {
-  Streamer::keepServing = false;
   /* TODO: Join redirectorThread */
+  Streamer::keepServing = false;
   close(serverSocket);
 }
 
@@ -66,24 +58,23 @@ void Streamer::ListenConnectionPoint(int clientLimit) {
 
   Streamer::keepServing = true;
   redirectorThread = thread(AcceptClients, serverSocket);
-  std::cout << "Server socket connection established\n";
   std::cout << "Client limit set to " << clientLimit << std::endl;
 }
 
 
 
-void Streamer::SendFrame(cv::Mat newFrame) {
-  newFrame.copyTo(frame);
+void Streamer::SetCaptureSource(cv::VideoCapture newSource) {
+  frameSource = newSource;
 }
 
 
 
 void Streamer::AcceptClients(int socket) {
   std::vector<thread> workerList;
-  int currentClient = 0;
   int clientSocket;
 
-  while(true) {
+
+  while(keepServing) {
     clientSocket = accept(socket, nullptr, nullptr);
     if (clientSocket == -1) {
       std::cerr << "\nError\nConnection attempt with client failed\n";
@@ -104,8 +95,12 @@ void Streamer::AcceptClients(int socket) {
 
 
 void Streamer::ServeClient(int client) {
+  cv::Mat frame;
+  int frameSize;
+  
   while(Streamer::keepServing) {
-    int frameSize = frame.total()*frame.elemSize();
+    frameSource >> frame;
+    frameSize = frame.total()*frame.elemSize();
     send(client, frame.data, frameSize, 0);
   }
 

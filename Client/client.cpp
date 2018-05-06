@@ -57,8 +57,8 @@ int main(int argc, char **argv){
 	/* Filling socket address structure */
 	server = gethostbyname(argv[1]);
 	bcopy((char *)server->h_addr, (char*)&serverAddress.sin_addr.s_addr, sizeof(serverAddress));
-  serverAddress.sin_family = AF_INET;
-  serverAddress.sin_port = htons(atoi(argv[2]));
+	serverAddress.sin_family = AF_INET;
+	serverAddress.sin_port = htons(atoi(argv[2]));
 
 	/* Connecting to server */
 	if (connect(serverSocket, (struct sockaddr*)&serverAddress, sizeof(serverAddress)) == ERROR_CODE) {

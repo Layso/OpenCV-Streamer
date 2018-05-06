@@ -20,11 +20,9 @@ using std::thread;
 
 class Streamer {
 public:
-  /* Constructor */
-  Streamer();
-
   /* Public functions to operate */
-  void CreateConnection(string ip, string port);
+  void SetCaptureSource(cv::VideoCapture newSource);
+  void CreateConnection(string ip, std::string port);
   void ListenConnectionPoint(int clientLimit);
   void SendFrame(cv::Mat newFrame);
   void EndConnection();
@@ -32,15 +30,11 @@ public:
 private:
   /* Member variables */
   int serverSocket;
-  int socketType;
-  int sentCount;
-  int maximumClients;
-  thread redirectorThread;
+  std::thread redirectorThread;
 
   /* Static members to access from threads */
   static bool keepServing;
-  static cv::Mat frame;
-  static cv::VideoCapture cap;
+  static cv::VideoCapture frameSource;
 
   /* Class specific constant values */
   const int ZERO = 0;

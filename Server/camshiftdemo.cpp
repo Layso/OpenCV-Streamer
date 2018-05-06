@@ -5,11 +5,14 @@
 #include "opencv2/highgui.hpp"
 #include "streamer.h"
 #include <iostream>
-#include <signal.h>
 #include <ctype.h>
+
+
 
 using namespace cv;
 using namespace std;
+
+
 
 Mat image;
 
@@ -35,18 +38,17 @@ static void onMouse( int event, int x, int y, int, void* )
         selection &= Rect(0, 0, image.cols, image.rows);
     }
 
-    switch( event )
-    {
-    case EVENT_LBUTTONDOWN:
-        origin = Point(x,y);
-        selection = Rect(x,y,0,0);
-        selectObject = true;
-        break;
-    case EVENT_LBUTTONUP:
-        selectObject = false;
-        if( selection.width > 0 && selection.height > 0 )
-            trackObject = -1;   // Set up CAMShift properties in main() loop
-        break;
+    switch( event ) {
+        case EVENT_LBUTTONDOWN:
+            origin = Point(x,y);
+            selection = Rect(x,y,0,0);
+            selectObject = true;
+            break;
+        case EVENT_LBUTTONUP:
+            selectObject = false;
+            if( selection.width > 0 && selection.height > 0 )
+                trackObject = -1;   // Set up CAMShift properties in main() loop
+            break;
     }
 }
 
@@ -104,6 +106,7 @@ int main( int argc, const char** argv )
 
 
     /* Stream specific area */
+    streamerObject.SetCaptureSource(cap);
     streamerObject.CreateConnection(argv[1], argv[2]);
     streamerObject.ListenConnectionPoint(10);
     /* Stream specific area */
@@ -117,13 +120,7 @@ int main( int argc, const char** argv )
             if( frame.empty() )
                 break;
         }
-
-
-        /* Stream specific area */
-        streamerObject.SendFrame(frame);
-        /* Stream specific area */
-
-
+        
         frame.copyTo(image);
 
         if( !paused )
@@ -211,6 +208,7 @@ int main( int argc, const char** argv )
 
         if( selectObject && selection.width > 0 && selection.height > 0 )
         {
+            std::cout << "hekkey\n";
             Mat roi(image, selection);
             bitwise_not(roi, roi);
         }
@@ -246,7 +244,9 @@ int main( int argc, const char** argv )
             ;
         }
     }
+    
+    
+    
 
-    raise(SIGINT);
     return 0;
 }
