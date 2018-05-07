@@ -1,16 +1,22 @@
 #include "streamer.h"
 #include <signal.h>
-
+#include <sys/poll.h>
 
 
 bool Streamer::keepServing;
 cv::VideoCapture Streamer::frameSource;
+std::vector<std::thread> Streamer::workerList;
 
 
 
 void Streamer::EndConnection() {
-	/* TODO: Join redirectorThread */
 	Streamer::keepServing = false;
+	for (int i=0; i<workerList.size(); ++i) {
+		workerList[i].join();
+	}
+	
+	shutdown(serverSocket, SHUT_RDWR);
+	redirectorThread.join();
 	close(serverSocket);
 }
 
@@ -58,7 +64,7 @@ void Streamer::ListenConnectionPoint(int clientLimit) {
 	}
 
 	Streamer::keepServing = true;
-	redirectorThread = thread(AcceptClients, serverSocket);
+	redirectorThread = std::thread(AcceptClients, serverSocket);
 	std::cout << "Client limit set to " << clientLimit << std::endl;
 }
 
@@ -71,27 +77,22 @@ void Streamer::SetCaptureSource(cv::VideoCapture newSource) {
 
 
 void Streamer::AcceptClients(int socket) {
-	std::vector<thread> workerList;
 	int clientSocket;
-
-
+	
+	
 	while(keepServing) {
 		clientSocket = accept(socket, nullptr, nullptr);
 		if (clientSocket == -1) {
-			std::cerr << "\nError\nConnection attempt with client failed\n";
+			if (errno != EINVAL)
+				std::cerr << "\nError\nConnection attempt with client failed\n" << errno << std::endl;
 		}
 
 		else {
 			std::cout << "Creating new thread for client #" << clientSocket << std::endl;
-			thread newThread(ServeClient, clientSocket);
+			std::thread newThread(ServeClient, clientSocket);
 			workerList.push_back(std::move(newThread));
 		}
-	}
-
-
-	for (int i=0; i< workerList.size(); ++i) {
-		workerList[i].join();
-	}
+	}	
 }
 
 

@@ -16,21 +16,21 @@ int main(int argc, char **argv) {
 		std::cerr << "Usage: " << argv[EXE_NAME_INDEX] << " [ipAddress] [port] [userType]\n";
 		return EXIT_FAILURE;
 	}
-	
-	
+
+    bool cont = true;
 	Client client;
 	client.CreateConnection(argv[IP_ADDRESS_INDEX], argv[PORT_INDEX], atoi(argv[USER_MODE_INDEX]));
-	while (client.Continues()) {
-        if (client.GetFrame().data != NULL) {
-            imshow("Client Stream", client.GetFrame());
-        }
-        
-        if (cv::waitKey(1) == ESC_KEYCODE) {
-            client.EndConnection();
-        }
+	while (cont) {
+		if (client.GetFrame().data != NULL) {
+			imshow("Client Stream", client.GetFrame());
+		}
+
+		if (cv::waitKey(1) == ESC_KEYCODE) {
+			cont = false;
+		}
 	}
     
-    
+    client.EndConnection();
 	return EXIT_SUCCESS;
 }
 

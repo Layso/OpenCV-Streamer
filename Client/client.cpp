@@ -78,12 +78,29 @@ void Client::RecieveFrames(int socket) {
 		}
 		
 		/* Reading width, height and image data */
-		bytesRead = 0;
+		bytesRead = recv(socket, &width, sizeof(width), 0);
+		if (bytesRead <= 0) {
+			std::cout << "Connection terminated by server\n";
+			keepGoing = false;
+			break;
+		}
+		
+		bytesRead = recv(socket, &height, sizeof(height), 0);
+		if (bytesRead <= 0) {
+			std::cout << "Connection terminated by server\n";
+			keepGoing = false;
+			break;
+		}
+		
+		bytesRead = ZERO;
 		uchar frameData[frameSize];
-		recv(socket, &width, sizeof(width), 0);
-		recv(socket, &height, sizeof(height), 0);
 		for (int i=0; i<frameSize; i+=bytesRead) {
 			bytesRead = recv(socket, frameData+i, frameSize-i, 0);
+			if (bytesRead <= 0) {
+				std::cout << "Connection terminated by server\n";
+				keepGoing = false;
+				break;
+			}
 		}
 		
 		/* Setting new frame to local frame */

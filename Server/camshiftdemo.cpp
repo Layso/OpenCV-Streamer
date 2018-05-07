@@ -241,8 +241,5 @@ int main( int argc, const char** argv )
     }
     
     streamerObject.EndConnection();
-    
-    
-
     return 0;
 }

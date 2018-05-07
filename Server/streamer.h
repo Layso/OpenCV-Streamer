@@ -14,7 +14,6 @@
 #include <thread>
 
 using std::string;
-using std::thread;
 
 
 
@@ -26,25 +25,26 @@ using std::thread;
 
 class Streamer {
 public:  
-  /* Public functions to operate */
-  void SetCaptureSource(cv::VideoCapture newSource);
-  void CreateConnection(string ip, std::string port);
-  void ListenConnectionPoint(int clientLimit);
-  void SendFrame(cv::Mat newFrame);
-  void EndConnection();
+	/* Public functions to operate */
+	void SetCaptureSource(cv::VideoCapture newSource);
+	void CreateConnection(string ip, std::string port);
+	void ListenConnectionPoint(int clientLimit);
+	void SendFrame(cv::Mat newFrame);
+	void EndConnection();
 
 private:
-  /* Member variables */
-  int serverSocket;
-  std::thread redirectorThread;
+	/* Member variables */
+	int serverSocket;
+	std::thread redirectorThread;
 
-  /* Static members to access from threads */
-  static bool keepServing;
-  static cv::VideoCapture frameSource;
+	/* Static members to access from threads */
+	static bool keepServing;
+	static cv::VideoCapture frameSource;
+	static std::vector<std::thread> workerList;
 
-  /* Helper functions */
-  static void AcceptClients(int socket);
-  static void ServeClient(int client);
+	/* Helper functions */
+	static void AcceptClients(int socket);
+	static void ServeClient(int client);
 };
 
 
