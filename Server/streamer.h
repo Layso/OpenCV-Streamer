@@ -18,8 +18,14 @@ using std::thread;
 
 
 
+#define ZERO 0
+#define ERROR_CODE -1
+#define DEFAULT_OPTIONS 0
+
+
+
 class Streamer {
-public:
+public:  
   /* Public functions to operate */
   void SetCaptureSource(cv::VideoCapture newSource);
   void CreateConnection(string ip, std::string port);
@@ -35,11 +41,6 @@ private:
   /* Static members to access from threads */
   static bool keepServing;
   static cv::VideoCapture frameSource;
-
-  /* Class specific constant values */
-  const int ZERO = 0;
-  const int ERROR_CODE = -1;
-  const int DEFAULT_OPTIONS = 0;
 
   /* Helper functions */
   static void AcceptClients(int socket);

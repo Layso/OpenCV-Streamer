@@ -78,8 +78,8 @@ const char* keys =
 
 int main( int argc, const char** argv )
 {
-    Streamer streamerObject;
     VideoCapture cap;
+    Streamer streamerObject;
     Rect trackWindow;
     int hsize = 16;
     float hranges[] = {0,180};
@@ -104,13 +104,9 @@ int main( int argc, const char** argv )
     Mat frame, hsv, hue, mask, hist, histimg = Mat::zeros(200, 320, CV_8UC3), backproj;
     bool paused = false;
 
-
-    /* Stream specific area */
-    streamerObject.SetCaptureSource(cap);
     streamerObject.CreateConnection(argv[1], argv[2]);
     streamerObject.ListenConnectionPoint(10);
-    /* Stream specific area */
-
+    streamerObject.SetCaptureSource(cap);
 
     for(;;)
     {
@@ -208,7 +204,6 @@ int main( int argc, const char** argv )
 
         if( selectObject && selection.width > 0 && selection.height > 0 )
         {
-            std::cout << "hekkey\n";
             Mat roi(image, selection);
             bitwise_not(roi, roi);
         }
@@ -219,7 +214,7 @@ int main( int argc, const char** argv )
         char c = (char)waitKey(10);
         if( c == 27 ) {
           break;
-          streamerObject.EndConnection();
+          
         }
         switch(c)
         {
@@ -245,6 +240,7 @@ int main( int argc, const char** argv )
         }
     }
     
+    streamerObject.EndConnection();
     
     
 

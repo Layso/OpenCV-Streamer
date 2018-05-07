@@ -4,14 +4,14 @@ leysö: clean compileocv
 
 execName = client
 
-args = 10.1.44.156 3000
+args = 10.1.44.156 3000 0
 
 extraFilesToClear =
 
 
 
 compileocv:
-	g++ client.cpp -o client `pkg-config opencv --cflags --libs`
+	g++ main.cpp client.cpp -o $(execName) `pkg-config opencv --cflags --libs` -pthread
 
 
 
