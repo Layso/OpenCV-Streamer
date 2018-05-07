@@ -180,16 +180,20 @@ int main( int argc, const char** argv )
            		int dur = 0;
            		if(center<=(totalcols/5)*2)
            		{
-           			printf("Surat Solda,Camera Sola gitmeli\n");
+                    // Movement to left required
+           			printf("<---    Kamera\n");
            			dur = 1;
            		}
            		else if(center>=(totalcols/5)*3)
            		{
-           			printf("Surat Sağda,Camera Sağa gitmeli\n");
+                    // Movement to right required
+           			printf("        Kamera    --->\n");
            			dur = 1;
            		}
            		else
            		{
+                    // Stop the movement
+                    printf("        Kamera        \n");
            			if(dur!=0)
            			{
            				printf("Dur\n");

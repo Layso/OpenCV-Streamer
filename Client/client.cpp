@@ -14,6 +14,12 @@ bool Client::Continues() {
 
 
 
+bool Client::SuperUser() {
+	return userType == SUPER_USER;
+}
+
+
+
 void Client::EndConnection() {
 	keepGoing = false;
 	recieverThread.join();
@@ -23,6 +29,41 @@ void Client::EndConnection() {
 
 cv::Mat Client::GetFrame() {
 	return currentFrame;
+}
+
+
+
+void Client::MouseEvent(int event, int x, int y) {
+	if(selectObject) {
+		selection.x = MIN(x, firstPoint.x);
+		selection.y = MIN(y, firstPoint.y);
+		selection.width = std::abs(x - firstPoint.x);
+		selection.height = std::abs(y - firstPoint.y);
+		selection &= cv::Rect(0, 0, currentFrame.cols, currentFrame.rows);
+		cv::rectangle(currentFrame, cvPoint(firstPoint.x, firstPoint.y), cvPoint(x, y), cvScalar(255, 255, 255));
+	}
+
+	switch(event) {
+		case cv::EVENT_LBUTTONDOWN:
+			firstPoint = cv::Point(x,y);
+			secondPoint = cv::Point(x,y);
+			selection = cv::Rect(x,y,0,0);
+			selectObject = true;
+			break;
+			
+		case cv::EVENT_LBUTTONUP:
+			secondPoint = cv::Point(x,y);
+			selectObject = false;
+			SendSelection();
+			break;
+	}
+}
+
+
+
+void Client::SendSelection() {
+	
+	std::cout << "heleley\n";
 }
 
 
@@ -53,6 +94,7 @@ void Client::CreateConnection(std::string ip, std::string port, int mode) {
 	
 	
 	/* Creating thread to recieve frames */
+	userType = mode;
 	keepGoing = true;
 	recieverThread = std::thread(RecieveFrames, serverSocket);
 	std::cout << "Connection established with server\n";

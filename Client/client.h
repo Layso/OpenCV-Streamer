@@ -44,16 +44,24 @@
 class Client {
 public:
 	bool Continues();
+	bool SuperUser();
 	cv::Mat GetFrame();
 	void EndConnection();
+	void MouseEvent(int event, int x, int y);
 	void CreateConnection(std::string ip, std::string port, int mode);
 	
 private:
 	int userType;
 	bool continues;
 	int serverSocket;
+	bool selectObject;
+	cv::Rect selection;
+	cv::Point firstPoint;
+	cv::Point secondPoint;
 	std::thread recieverThread;
 	
+	/* Helper private functions */
+	void SendSelection();
 	
 	/* Static functions for threads */
 	static void RecieveFrames(int socket);
