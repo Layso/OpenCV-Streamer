@@ -35,7 +35,6 @@ int main(int argc, char **argv) {
 	client->CreateConnection(argv[IP_ADDRESS_INDEX], argv[PORT_INDEX], atoi(argv[USER_MODE_INDEX]));
     cv::namedWindow("Client Stream", CV_WINDOW_AUTOSIZE);
 	cv::setMouseCallback("Client Stream", MouseEventWrapper, DEFAULT_OPTIONS);
-    std::cout << client->SuperUser() << std::endl;
     
     /* Infinite (until ESC pressed) loop to print recieved frames */
 	while (cont) {

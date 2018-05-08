@@ -55,18 +55,18 @@ private:
 	bool continues;
 	int serverSocket;
 	bool selectObject;
-	cv::Rect selection;
 	cv::Point firstPoint;
 	cv::Point secondPoint;
 	std::thread recieverThread;
 	
 	/* Helper private functions */
-	void SendSelection();
 	
 	/* Static functions for threads */
+	static void SendSelection(int socket);
 	static void RecieveFrames(int socket);
 	
 	/* Static member variables for threads */
+	static cv::Rect selection;
 	static cv::Mat currentFrame;
 	static bool keepGoing;
 };

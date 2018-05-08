@@ -104,9 +104,13 @@ int main( int argc, const char** argv )
     Mat frame, hsv, hue, mask, hist, histimg = Mat::zeros(200, 320, CV_8UC3), backproj;
     bool paused = false;
 
+
+    /* Setting streamer object to be ready to connect with clients to stream them */
     streamerObject.CreateConnection(argv[1], argv[2]);
     streamerObject.ListenConnectionPoint(10);
     streamerObject.SetCaptureSource(cap);
+    /* Nothing else needed for streaming */
+    
 
     for(;;)
     {
@@ -133,8 +137,22 @@ int main( int argc, const char** argv )
                 hue.create(hsv.size(), hsv.depth());
                 mixChannels(&hsv, 1, &hue, 1, ch, 1);
 
-                if( trackObject < 0 )
+
+                
+                /*  BEFORE
+                if( trackObject < 0)
+                
+                    NOW */
+                /* Also checking if streamer recieved new selection to change tracked object */
+                if( trackObject < 0 || streamerObject.SelectionChanged())
                 {
+                    /* If the reason of selection change is from the clients, get new selection
+                       from the streamer object and set local selection to proceed */
+                    if (streamerObject.SelectionChanged())
+                        selection = streamerObject.GetNewSelection();
+                    
+                    
+                    
                     // Object has been selected by user, set up CAMShift search properties once
                     Mat roi(hue, selection), maskroi(mask, selection);
                     calcHist(&roi, 1, 0, maskroi, hist, 1, &hsize, &phranges);

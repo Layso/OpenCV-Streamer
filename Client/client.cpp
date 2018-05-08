@@ -5,21 +5,25 @@
 /* Static member definitions */
 cv::Mat Client::currentFrame;
 bool Client::keepGoing;
+cv::Rect Client::selection;
 
 
 
+/* Returns the run status flag */
 bool Client::Continues() {
 	return keepGoing;
 }
 
 
 
+/* Returns true if client is a super user */
 bool Client::SuperUser() {
 	return userType == SUPER_USER;
 }
 
 
 
+/* Indicates the service is over and waits for reciever thread to join */
 void Client::EndConnection() {
 	keepGoing = false;
 	recieverThread.join();
@@ -27,13 +31,17 @@ void Client::EndConnection() {
 
 
 
+/* Getter for the last recieved frame from the server */
 cv::Mat Client::GetFrame() {
 	return currentFrame;
 }
 
 
 
+/* Mouse event function to select are from the stream and send to server to set as new track object */
 void Client::MouseEvent(int event, int x, int y) {
+	/* If selection flag is raised then the mouse currently pressed and dragged. Update and et new
+	   positions of the selection are for client to see where is selected. Draw a rectangle for visual guidance */
 	if(selectObject) {
 		selection.x = MIN(x, firstPoint.x);
 		selection.y = MIN(y, firstPoint.y);
@@ -44,6 +52,7 @@ void Client::MouseEvent(int event, int x, int y) {
 	}
 
 	switch(event) {
+		/* If button pressed, set start points and raise selection flag */
 		case cv::EVENT_LBUTTONDOWN:
 			firstPoint = cv::Point(x,y);
 			secondPoint = cv::Point(x,y);
@@ -51,23 +60,29 @@ void Client::MouseEvent(int event, int x, int y) {
 			selectObject = true;
 			break;
 			
+		/* If button released, set end points and send the selection to the server */
 		case cv::EVENT_LBUTTONUP:
 			secondPoint = cv::Point(x,y);
 			selectObject = false;
-			SendSelection();
+			std::thread Thread(SendSelection, serverSocket);
+			Thread.detach();
 			break;
 	}
 }
 
 
 
-void Client::SendSelection() {
+/* Thread function to send the selected are to the server through socket */
+void Client::SendSelection(int socket) {
+	int bytes;
 	
-	std::cout << "heleley\n";
+	bytes = send(socket, &selection, sizeof(selection), DEFAULT_OPTIONS);
+	std::cout << "New selection sent to the server\n";	
 }
 
 
 
+/* Creates a connection with given ip and port settings between server */
 void Client::CreateConnection(std::string ip, std::string port, int mode) {
 	struct hostent *server;
 	struct sockaddr_in serverAddress;
@@ -102,6 +117,7 @@ void Client::CreateConnection(std::string ip, std::string port, int mode) {
 
 
 
+/* Thread function to continuously recieve frames and set to local frame member */
 void Client::RecieveFrames(int socket) {
 	int i;
 	int bytesRead;
@@ -111,7 +127,7 @@ void Client::RecieveFrames(int socket) {
 	
 	/* Reading frame continuously from the socket */
 	while (keepGoing) {
-		/* Reading frame size from socket */
+		/* Reading frame size, width and length first to read and form the frame */
 		bytesRead = recv(socket, &frameSize, sizeof(frameSize), 0);
 		if (bytesRead <= 0) {
 			std::cout << "Connection terminated by server\n";
@@ -119,7 +135,6 @@ void Client::RecieveFrames(int socket) {
 			break;
 		}
 		
-		/* Reading width, height and image data */
 		bytesRead = recv(socket, &width, sizeof(width), 0);
 		if (bytesRead <= 0) {
 			std::cout << "Connection terminated by server\n";
@@ -134,6 +149,7 @@ void Client::RecieveFrames(int socket) {
 			break;
 		}
 		
+		/* Finally reading data and forming a Mat object that holds the frame */
 		bytesRead = ZERO;
 		uchar frameData[frameSize];
 		for (int i=0; i<frameSize; i+=bytesRead) {
