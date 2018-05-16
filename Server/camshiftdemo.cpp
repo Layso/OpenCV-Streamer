@@ -199,19 +199,19 @@ int main( int argc, const char** argv )
            		if(center<=(totalcols/5)*2)
            		{
                     // Movement to left required
-           			printf("<---    Kamera\n");
+           			//printf("<---    Kamera\n");
            			dur = 1;
            		}
            		else if(center>=(totalcols/5)*3)
            		{
                     // Movement to right required
-           			printf("        Kamera    --->\n");
+           			//printf("        Kamera    --->\n");
            			dur = 1;
            		}
            		else
            		{
                     // Stop the movement
-                    printf("        Kamera        \n");
+                    //printf("        Kamera        \n");
            			if(dur!=0)
            			{
            				printf("Dur\n");

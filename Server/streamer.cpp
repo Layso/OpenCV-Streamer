@@ -16,13 +16,13 @@ void Streamer::EndConnection() {
 	/* Notifying service has ended and shutting down the socket */
 	Streamer::keepServing = false;
 	shutdown(serverSocket, SHUT_RDWR);
-	
+
 	/* Making sure each thread has ended its job */
 	for (int i=0; i<workerList.size(); ++i) {
 		workerList[i].join();
 	}
 	redirectorThread.join();
-	
+
 	/* Closing socket finally */
 	close(serverSocket);
 }
@@ -70,7 +70,7 @@ void Streamer::CreateConnection(string ip, string port) {
 
 	/* Binding socket descriptor to socket address */
 	if (bind(serverSocket, (struct sockaddr *)&socketAddress, sizeof(struct sockaddr)) == ERROR_CODE) {
-		std::cerr << "\nError\nServer socket binding failed\n";
+		std::cerr << "\nError\nServer address binding failed\n";
 		exit(EXIT_FAILURE);
 	}
 
@@ -105,15 +105,15 @@ void Streamer::SetCaptureSource(cv::VideoCapture newSource) {
 void Streamer::RecieveSelection(int socket) {
 	cv::Rect selection;
 	int bytes;
-	
-	
+
+
 	do {
 		/* If a valid recieving has done, set the recieved selection and raise flag */
 		bytes = recv(socket, &selection, sizeof(selection), DEFAULT_OPTIONS);
 		if (bytes > ZERO) {
 			selectionRecieved = true;
 			currentSelection = selection;
-			std::cout << "New selection recieved from client #" << socket << std::endl;	
+			std::cout << "New selection recieved from client #" << socket << std::endl;
 		}
 	} while (bytes != ERROR_CODE);
 }
@@ -123,8 +123,8 @@ void Streamer::RecieveSelection(int socket) {
 /* Thread function to infinitly accept clients from the created socket */
 void Streamer::AcceptClients(int socket) {
 	int clientSocket;
-	
-	
+
+
 	while(keepServing) {
 		/* Get new client socket and check for errors */
 		clientSocket = accept(socket, nullptr, nullptr);
@@ -132,7 +132,7 @@ void Streamer::AcceptClients(int socket) {
 			if (errno != EINVAL)
 				std::cerr << "\nError\nConnection attempt with client failed\n" << errno << std::endl;
 		}
-		
+
 		/* Create a streamer thread and a reciever thread to both stream and wait for new selection */
 		else {
 			std::cout << "Creating new thread for client #" << clientSocket << std::endl;
@@ -141,7 +141,7 @@ void Streamer::AcceptClients(int socket) {
 			workerList.push_back(std::move(sender));
 			workerList.push_back(std::move(reciever));
 		}
-	}	
+	}
 }
 
 
@@ -149,32 +149,50 @@ void Streamer::AcceptClients(int socket) {
 /* Thread function to send the client frames from the video source */
 void Streamer::ServeClient(int client) {
 	cv::Mat frame;
-	int frameSize;
-	
-	
+	int size;
+	std::vector<uchar> buff;
+	std::vector<int> param;
+	uchar *package = nullptr;
+	param.push_back(cv::IMWRITE_JPEG_QUALITY);
+	param.push_back(80);
+
+
 	while(keepServing) {
 		frameSource >> frame;
-		frameSize = frame.total()*frame.elemSize();
-		
-		
-		if (send(client, &frameSize, sizeof(frameSize), DEFAULT_OPTIONS) <= ZERO) {
+
+		/* Compressing current frame */
+		cv::imencode(".jpg", frame, buff, param);
+		size = sizeof(uchar) * buff.size();
+		package = new uchar[size];
+		for (int i=0; i<buff.size(); ++i)
+			package[i] = buff[i];
+
+		/*
+		std::cout << "Size      : " << frame.elemSize() * frame.total() << std::endl;
+		std::cout << "Compressed: " << size << std::endl;
+		*/
+
+		/* Send data size, image width, image height and data */
+		if (send(client, &size, sizeof(size), DEFAULT_OPTIONS) <= ZERO) {
 			break;
 		}
-		
+
 		if (send(client, &frame.cols, sizeof(frame.cols), DEFAULT_OPTIONS) <= ZERO) {
 			break;
 		}
-		
+
 		if (send(client, &frame.rows, sizeof(frame.rows), DEFAULT_OPTIONS) <= ZERO) {
 			break;
 		}
-		
-		if (send(client, frame.data, frameSize, DEFAULT_OPTIONS) <= ZERO) {
+
+		if (send(client, package, sizeof(uchar) * buff.size(), DEFAULT_OPTIONS) <= ZERO) {
 			break;
 		}
+
+		delete package;
 	}
-	
-	
+
+
 	std::cerr << "Connection closed with client #" << client << std::endl;
 	close(client);
 }
