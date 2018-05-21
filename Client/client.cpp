@@ -127,17 +127,15 @@ void Client::CreateConnection(std::string ip, std::string port, int mode) {
 
 /* Thread function to continuously recieve frames and set to local frame member */
 void Client::RecieveFrames(int socket) {
-	int i;
 	int size;
 	int bytesRead;
 	int width, height;
-	uchar *frameData = nullptr;
+	std::vector<char> feriha;
 
 
 	/* Reading frame continuously from the socket */
 	while (keepGoing) {
 		/* Reading frame size, width and length first to read and form the frame */
-
 		bytesRead = recv(socket, &size, sizeof(size), 0);
 		if (bytesRead <= 0) {
 			std::cout << "Connection terminated by server\n";
@@ -172,34 +170,13 @@ void Client::RecieveFrames(int socket) {
 			}
 		}
 
-
-		cv::Mat imgbuf(cv::Size(width, height), CV_8UC3, frameData);
-		imgbuf = cv::imdecode(imgbuf, CV_LOAD_IMAGE_COLOR).clone();
-		imgbuf.copyTo(currentFrame);
-
-		/*
-
-		*/
-		/* Encode compressed image data and assign to current frame */
-		/* Setting new frame to local frame */
-		/*
-		currentFrame = cv::Mat(cv::Size(width,height), CV_8UC3, data);
-
-		if (frameData == nullptr) {
-			std::cout << "REEEEEEEEEEEEEEE3\n";
+		/* Converting char array to vector for cv::Mat transformation */
+		for (int i=0; i<size; ++i) {
+			feriha.push_back(frameData[i]);
 		}
-		frameData = nullptr;
 
-		std::cout << "Rcv 1\n";
-		std::cout << "Rcv 2\n";
-		std::cout << "Rcv 3\n";
-		std::cout << "Rcv 4\n";
-		std::cout << "Rcv 5\n";
-		std::cout << "Rcv 6\n";
-		std::cout << "Rcv 6.5\n";
-		std::cout << "Rcv 7\n";
-
-		*/
+		cv::imdecode(cv::Mat(feriha), CV_LOAD_IMAGE_COLOR).copyTo(currentFrame);
+		feriha.clear();
 	}
 
 

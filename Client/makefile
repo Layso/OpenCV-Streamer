@@ -4,7 +4,7 @@ leysö: clean compileocv
 
 execName = client
 
-args = 192.168.1.105 3001 1
+args = 10.1.44.138 3001 1
 
 extraFilesToClear =
 

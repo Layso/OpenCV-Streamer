@@ -176,7 +176,7 @@ void Streamer::ServeClient(int client) {
 		if (send(client, &size, sizeof(size), DEFAULT_OPTIONS) <= ZERO) {
 			break;
 		}
-
+		
 		if (send(client, &frame.cols, sizeof(frame.cols), DEFAULT_OPTIONS) <= ZERO) {
 			break;
 		}
