@@ -53,7 +53,7 @@ class Streamer {
 public:  
 	/* Public functions to operate */
 	void SetCaptureSource(cv::VideoCapture newSource);
-	void CreateConnection(string ip, std::string port);
+	void CreateConnection(std::string port);
 	void ListenConnectionPoint(int clientLimit);
 	void SendFrame(cv::Mat newFrame);
 	void EndConnection();

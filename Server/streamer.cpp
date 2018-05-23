@@ -45,7 +45,7 @@ cv::Rect Streamer::GetNewSelection() {
 
 
 /* Creates a socket with given ip and port settings to communicate with clients */
-void Streamer::CreateConnection(string ip, string port) {
+void Streamer::CreateConnection(string port) {
 	struct sockaddr_in socketAddress;
 	int set = 1;
 
@@ -65,7 +65,7 @@ void Streamer::CreateConnection(string ip, string port) {
 
 	/* Filling socket address structure */
 	socketAddress.sin_family = AF_INET;
-	socketAddress.sin_addr.s_addr = inet_addr(ip.c_str());
+	socketAddress.sin_addr.s_addr = inet_addr("0.0.0.0");
 	socketAddress.sin_port = htons(stoi(port));
 
 	/* Binding socket descriptor to socket address */
@@ -74,7 +74,7 @@ void Streamer::CreateConnection(string ip, string port) {
 		exit(EXIT_FAILURE);
 	}
 
-	std::cout << "Server is ready to stream on " << ip << ":" << port << std::endl;
+	//std::cout << "Server is ready to stream on " << ip << ":" << port << std::endl;
 }
 
 
@@ -166,22 +166,10 @@ void Streamer::ServeClient(int client) {
 		package = new uchar[size];
 		for (int i=0; i<buff.size(); ++i)
 			package[i] = buff[i];
-
-		/*
-		std::cout << "Size      : " << frame.elemSize() * frame.total() << std::endl;
-		std::cout << "Compressed: " << size << std::endl;
-		*/
+			
 
 		/* Send data size, image width, image height and data */
 		if (send(client, &size, sizeof(size), DEFAULT_OPTIONS) <= ZERO) {
-			break;
-		}
-		
-		if (send(client, &frame.cols, sizeof(frame.cols), DEFAULT_OPTIONS) <= ZERO) {
-			break;
-		}
-
-		if (send(client, &frame.rows, sizeof(frame.rows), DEFAULT_OPTIONS) <= ZERO) {
 			break;
 		}
 

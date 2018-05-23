@@ -78,6 +78,9 @@ const char* keys =
 
 int main( int argc, const char** argv )
 {
+    if (argc != 2) {
+        printf("Usage: %s [portno]\n", argv[0]);
+    }
     VideoCapture cap;
     Streamer streamerObject;
     Rect trackWindow;
@@ -106,7 +109,7 @@ int main( int argc, const char** argv )
 
 
     /* Setting streamer object to be ready to connect with clients to stream them */
-    streamerObject.CreateConnection(argv[1], argv[2]);
+    streamerObject.CreateConnection(argv[1]);
     streamerObject.ListenConnectionPoint(10);
     streamerObject.SetCaptureSource(cap);
     /* Nothing else needed for streaming */
@@ -127,7 +130,7 @@ int main( int argc, const char** argv )
         {
             cvtColor(image, hsv, COLOR_BGR2HSV);
 
-            if( trackObject )
+            if( trackObject || streamerObject.SelectionChanged() )
             {
                 int _vmin = vmin, _vmax = vmax;
 
@@ -136,7 +139,8 @@ int main( int argc, const char** argv )
                 int ch[] = {0, 0};
                 hue.create(hsv.size(), hsv.depth());
                 mixChannels(&hsv, 1, &hue, 1, ch, 1);
-
+                
+                 
 
                 
                 /*  BEFORE

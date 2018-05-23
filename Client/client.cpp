@@ -143,21 +143,7 @@ void Client::RecieveFrames(int socket) {
 			break;
 		}
 
-		bytesRead = recv(socket, &width, sizeof(width), 0);
-		if (bytesRead <= 0) {
-			std::cout << "Connection terminated by server\n";
-			keepGoing = false;
-			break;
-		}
-
-		bytesRead = recv(socket, &height, sizeof(height), 0);
-		if (bytesRead <= 0) {
-			std::cout << "Connection terminated by server\n";
-			keepGoing = false;
-			break;
-		}
-
-		/* Finally reading data and forming a Mat object that holds the frame */
+		/* Readings data and forming a Mat object that holds the frame */
 		bytesRead = ZERO;
 		uchar frameData[size];
 
