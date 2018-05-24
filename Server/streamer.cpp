@@ -16,15 +16,13 @@ void Streamer::EndConnection() {
 	/* Notifying service has ended and shutting down the socket */
 	Streamer::keepServing = false;
 	shutdown(serverSocket, SHUT_RDWR);
+	close(serverSocket);
 
 	/* Making sure each thread has ended its job */
 	for (int i=0; i<workerList.size(); ++i) {
 		workerList[i].join();
 	}
 	redirectorThread.join();
-
-	/* Closing socket finally */
-	close(serverSocket);
 }
 
 
@@ -65,7 +63,7 @@ void Streamer::CreateConnection(string port) {
 
 	/* Filling socket address structure */
 	socketAddress.sin_family = AF_INET;
-	socketAddress.sin_addr.s_addr = inet_addr("0.0.0.0");
+	socketAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
 	socketAddress.sin_port = htons(stoi(port));
 
 	/* Binding socket descriptor to socket address */
@@ -105,8 +103,8 @@ void Streamer::SetCaptureSource(cv::VideoCapture newSource) {
 void Streamer::RecieveSelection(int socket) {
 	cv::Rect selection;
 	int bytes;
-
-
+	
+	
 	do {
 		/* If a valid recieving has done, set the recieved selection and raise flag */
 		bytes = recv(socket, &selection, sizeof(selection), DEFAULT_OPTIONS);
@@ -115,7 +113,7 @@ void Streamer::RecieveSelection(int socket) {
 			currentSelection = selection;
 			std::cout << "New selection recieved from client #" << socket << std::endl;
 		}
-	} while (bytes != ERROR_CODE);
+	} while (bytes > ZERO && keepServing);
 }
 
 
@@ -128,7 +126,7 @@ void Streamer::AcceptClients(int socket) {
 	while(keepServing) {
 		/* Get new client socket and check for errors */
 		clientSocket = accept(socket, nullptr, nullptr);
-		if (clientSocket == -1) {
+		if (clientSocket == ERROR_CODE) {
 			if (errno != EINVAL)
 				std::cerr << "\nError\nConnection attempt with client failed\n" << errno << std::endl;
 		}
@@ -152,7 +150,6 @@ void Streamer::ServeClient(int client) {
 	int size;
 	std::vector<uchar> buff;
 	std::vector<int> param;
-	uchar *package = nullptr;
 	param.push_back(cv::IMWRITE_JPEG_QUALITY);
 	param.push_back(80);
 
@@ -163,24 +160,22 @@ void Streamer::ServeClient(int client) {
 		/* Compressing current frame */
 		cv::imencode(".jpg", frame, buff, param);
 		size = sizeof(uchar) * buff.size();
-		package = new uchar[size];
+		uchar package[size];
 		for (int i=0; i<buff.size(); ++i)
 			package[i] = buff[i];
 			
 
-		/* Send data size, image width, image height and data */
+		/* Send data size and data */
 		if (send(client, &size, sizeof(size), DEFAULT_OPTIONS) <= ZERO) {
 			break;
 		}
 
-		if (send(client, package, sizeof(uchar) * buff.size(), DEFAULT_OPTIONS) <= ZERO) {
+		if (send(client, package, size, DEFAULT_OPTIONS) <= ZERO) {
 			break;
 		}
-
-		delete package;
 	}
 
 
+	shutdown(client, SHUT_RDWR);
 	std::cerr << "Connection closed with client #" << client << std::endl;
-	close(client);
 }

@@ -131,13 +131,13 @@ void Client::RecieveFrames(int socket) {
 	int bytesRead;
 	int width, height;
 	std::vector<char> feriha;
-
+	
 
 	/* Reading frame continuously from the socket */
 	while (keepGoing) {
 		/* Reading frame size, width and length first to read and form the frame */
 		bytesRead = recv(socket, &size, sizeof(size), 0);
-		if (bytesRead <= 0) {
+		if (bytesRead <= ZERO) {
 			std::cout << "Connection terminated by server\n";
 			keepGoing = false;
 			break;
@@ -146,7 +146,8 @@ void Client::RecieveFrames(int socket) {
 		/* Readings data and forming a Mat object that holds the frame */
 		bytesRead = ZERO;
 		uchar frameData[size];
-
+		/*recv(socket, frameData, size, ZERO);	*/
+		
 		for (int i=0; i<size; i+=bytesRead) {
 			bytesRead = recv(socket, frameData+i, size-i, 0);
 			if (bytesRead <= 0) {
@@ -155,7 +156,8 @@ void Client::RecieveFrames(int socket) {
 				break;
 			}
 		}
-
+		
+	
 		/* Converting char array to vector for cv::Mat transformation */
 		for (int i=0; i<size; ++i) {
 			feriha.push_back(frameData[i]);

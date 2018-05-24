@@ -4,7 +4,7 @@ leysö: clean compileocv
 
 execName = demo
 
-args = 3001
+args = 3002
 
 extraParamsToCompile = `pkg-config --cflags --libs opencv`
 

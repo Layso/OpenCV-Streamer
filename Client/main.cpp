@@ -29,17 +29,20 @@ int main(int argc, char **argv) {
 	}
 
 
-  /* Preparation and initializiations */
-  bool cont = true;
-  client = new Client();
-  client->CreateConnection(argv[IP_ADDRESS_INDEX], argv[PORT_INDEX], atoi(argv[USER_MODE_INDEX]));
-  cv::namedWindow("Client Stream", CV_WINDOW_AUTOSIZE);
-  cv::setMouseCallback("Client Stream", MouseEventWrapper, DEFAULT_OPTIONS);
+	/* Preparation and initializiations */
+	bool cont = true;
+	client = new Client();
+	client->CreateConnection(argv[IP_ADDRESS_INDEX], argv[PORT_INDEX], atoi(argv[USER_MODE_INDEX]));
+	cv::namedWindow("Client Stream", CV_WINDOW_AUTOSIZE);
+	cv::setMouseCallback("Client Stream", MouseEventWrapper, DEFAULT_OPTIONS);
+	cv::Mat frame;
 
-    /* Infinite (until ESC pressed) loop to print recieved frames */
+
+	/* Infinite (until ESC pressed) loop to print recieved frames */
 	while (cont) {
-		if (client->GetFrame().data != NULL) {
-			imshow("Client Stream", client->GetFrame());
+		client->GetFrame().copyTo(frame);
+		if (frame.data != NULL) {
+			imshow("Client Stream", frame);
 		}
 
 		if (cv::waitKey(1) == ESC_KEYCODE) {
@@ -47,8 +50,8 @@ int main(int argc, char **argv) {
 		}
 	}
 
-    /* Cleaning up */
-    client->EndConnection();
-    delete client;
+	/* Cleaning up */
+	client->EndConnection();
+	delete client;
 	return EXIT_SUCCESS;
 }
