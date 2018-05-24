@@ -63,7 +63,7 @@ void Streamer::CreateConnection(string port) {
 
 	/* Filling socket address structure */
 	socketAddress.sin_family = AF_INET;
-	socketAddress.sin_addr.s_addr = inet_addr("127.0.0.1");
+	socketAddress.sin_addr.s_addr = inet_addr("0.0.0.0");
 	socketAddress.sin_port = htons(stoi(port));
 
 	/* Binding socket descriptor to socket address */
