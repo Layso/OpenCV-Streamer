@@ -1,35 +1,30 @@
-#ifndef CLIENT_H
-#define CLIENT_H
-
 #include <iostream>
+#include <string>
+#include <thread>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <vector>
 #include <opencv2/opencv.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/core/utility.hpp>
 #include <opencv2/video/tracking.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/videoio.hpp>
-#include <sys/types.h>
+
+
+#ifdef __linux__
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netdb.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <thread>
-
-#include "opencv2/highgui.hpp"
-
-
-
-#include <opencv2/core/utility.hpp>
-#include "opencv2/video/tracking.hpp"
-#include "opencv2/imgproc.hpp"
-#include "opencv2/videoio.hpp"
+#elif _WIN32
+#pragma once
+#include <winsock.h>
+#pragma comment(lib,"WS2_32")
+#endif
 
 
-
-
-/* Already constant values, defining just to give a name to them */
 #define NORMAL_USER 0
 #define SUPER_USER 1
 #define ZERO 0
@@ -38,37 +33,49 @@
 #define ESC_KEYCODE 27
 #define MILISECONDS 1000
 #define VIDEO_SOURCE 0
-	
+#define WSADATA_VERSION 0x0202
+#define BUFFER_SIZE sizeof(uint16_t)
 
 
-class Client {
+
+class Client
+{
 public:
 	bool Continues();
 	bool SuperUser();
+
 	cv::Mat GetFrame();
 	void EndConnection();
 	void MouseEvent(int event, int x, int y);
 	void CreateConnection(std::string ip, std::string port, int mode);
-	
+
 private:
+	// Member variables
 	int userType;
 	bool continues;
-	int serverSocket;
 	bool selectObject;
 	cv::Point firstPoint;
 	cv::Point secondPoint;
 	std::thread recieverThread;
-	
-	/* Helper private functions */
-	
-	/* Static functions for threads */
+
+	// OS specific declarations
+#ifdef __linux__
+	int serverSocket;
+	static void RecieveFramesPOSIX(int socket);
+#elif _WIN32
+	SOCKET serverSocket;
+	static void RecieveFramesWIN(SOCKET socket);
+#endif
+
+	// Static functions for threads
 	static void SendSelection(int socket);
-	static void RecieveFrames(int socket);
-	
-	/* Static member variables for threads */
+
+	// Static member variables for threads
+	static bool keepGoing;
 	static cv::Rect selection;
 	static cv::Mat currentFrame;
-	static bool keepGoing;
 };
 
-#endif
+
+
+

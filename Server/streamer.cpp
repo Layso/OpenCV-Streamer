@@ -103,8 +103,8 @@ void Streamer::SetCaptureSource(cv::VideoCapture newSource) {
 void Streamer::RecieveSelection(int socket) {
 	cv::Rect selection;
 	int bytes;
-	
-	
+
+
 	do {
 		/* If a valid recieving has done, set the recieved selection and raise flag */
 		bytes = recv(socket, &selection, sizeof(selection), DEFAULT_OPTIONS);
@@ -147,7 +147,7 @@ void Streamer::AcceptClients(int socket) {
 /* Thread function to send the client frames from the video source */
 void Streamer::ServeClient(int client) {
 	cv::Mat frame;
-	int size;
+	uint32_t size;
 	std::vector<uchar> buff;
 	std::vector<int> param;
 	param.push_back(cv::IMWRITE_JPEG_QUALITY);
@@ -163,7 +163,6 @@ void Streamer::ServeClient(int client) {
 		uchar package[size];
 		for (int i=0; i<buff.size(); ++i)
 			package[i] = buff[i];
-			
 
 		/* Send data size and data */
 		if (send(client, &size, sizeof(size), DEFAULT_OPTIONS) <= ZERO) {
