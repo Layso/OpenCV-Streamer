@@ -7,7 +7,9 @@
 bool Streamer::keepServing;
 char Streamer::currentCommand;
 bool Streamer::commandRecieved;
+bool Streamer::frameSourceBool;
 bool Streamer::selectionRecieved;
+cv::Mat Streamer::currentFrame;
 cv::Rect Streamer::currentSelection;
 cv::VideoCapture Streamer::frameSource;
 std::vector<std::thread> Streamer::workerList;
@@ -59,7 +61,14 @@ char Streamer::GetCommand() {
 }
 	
 	
-	
+
+/*  */
+void Streamer::SendFrame(cv::Mat newFrame) {
+	newFrame.copyTo(currentFrame);
+}
+
+
+
 /* Creates a socket with given ip and port settings to communicate with clients */
 void Streamer::CreateConnection(string port) {
 	struct sockaddr_in socketAddress;
@@ -89,7 +98,8 @@ void Streamer::CreateConnection(string port) {
 		std::cerr << "\nError\nServer address binding failed\n";
 		exit(EXIT_FAILURE);
 	}
-
+	
+	frameSourceBool = false;
 	//std::cout << "Server is ready to stream on " << ip << ":" << port << std::endl;
 }
 
@@ -112,7 +122,9 @@ void Streamer::ListenConnectionPoint(int clientLimit) {
 
 /* Setter for cv::VideoCapture member to get the frames to send to clients */
 void Streamer::SetCaptureSource(cv::VideoCapture newSource) {
+	
 	frameSource = newSource;
+	frameSourceBool = true;
 }
 
 
@@ -182,8 +194,11 @@ void Streamer::ServeClient(int client) {
 
 
 	while(keepServing) {
-		frameSource >> frame;
-
+		if (frameSourceBool)
+			frameSource >> frame;
+		else 
+			currentFrame.copyTo(frame);
+			
 		/* Compressing current frame */
 		cv::imencode(".jpg", frame, buff, param);
 		size = sizeof(uchar) * buff.size();

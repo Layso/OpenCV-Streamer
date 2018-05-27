@@ -79,10 +79,12 @@ private:
 	std::thread redirectorThread;
 
 	/* Static members to access from threads */
+	static bool frameSourceBool;
 	static bool keepServing;
 	static char currentCommand;
 	static bool commandRecieved;
 	static bool selectionRecieved;
+	static cv::Mat currentFrame;
 	static cv::Rect currentSelection;
 	static cv::VideoCapture frameSource;
 	static std::vector<std::thread> workerList;

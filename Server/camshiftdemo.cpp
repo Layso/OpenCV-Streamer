@@ -120,6 +120,7 @@ int main( int argc, const char** argv )
         if( !paused )
         {
             cap >> frame;
+            //streamerObject.SendFrame(frame);
             if( frame.empty() )
                 break;
         }
