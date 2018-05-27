@@ -41,37 +41,20 @@ cv::Mat Client::GetFrame() {
 
 
 
-/* Mouse event function to select are from the stream and send to server to set as new track object */
-void Client::MouseEvent(int event, int x, int y) {
-	/* If selection flag is raised then the mouse currently pressed and dragged. Update and et new
-	positions of the selection are for client to see where is selected. Draw a rectangle for visual guidance */
-	/* If button pressed, set start points and raise selection flag */
-	/* If button released, set end points and send the selection to the server */
-
-
-	
-}
-
-
-
 /*  */
 void Client::NewCommand(struct ClientMessage msg) {
-	#ifdef __linux__
-	std::thread messenger(SendCommandPOSIX, msg);
-	#elif _WIN32
-	std::thread messenger(SendSelectionWIN, msg);
-	#endif
+	std::thread messenger(SendCommand, msg);
 	messenger.detach();
 }
 
 
 
 /* Thread function to send the new command to the server through socket */
-#ifdef __linux__
-void Client::SendCommandPOSIX(struct ClientMessage msg) {
+void Client::SendCommand(struct ClientMessage msg) {
 	int bytes;
 	
 	
+	#ifdef __linux__
 	bytes = send(serverSocket, &msg, sizeof(msg), DEFAULT_OPTIONS);
 	if (bytes <= ZERO) {
 		std::cerr << "New command couldn't sent to server\n";	
@@ -80,12 +63,7 @@ void Client::SendCommandPOSIX(struct ClientMessage msg) {
 	else {
 		std::cout << "New command sent to the server\n";
 	}
-}
-#elif _WIN32
-void Client::SendCommandWIN(struct ClientMessage msg) {
-	int bytes;
-	
-	
+	#elif _WIN32
 	bytes = send(serverSocket, (char*)&msg, sizeof(msg), DEFAULT_OPTIONS);
 	if (bytes == ZERO || bytes == SOCKET_ERROR) {
 		std::cerr << "New command couldn't sent to server\n"
@@ -94,8 +72,8 @@ void Client::SendCommandWIN(struct ClientMessage msg) {
 	else {
 		std::cout << "New command sent to the server\n";
 	}
+	#endif
 }
-#endif
 
 
 
@@ -124,10 +102,6 @@ void Client::CreateConnection(std::string ip, std::string port, int mode) {
 		std::cerr << "\nSystem Error\nConnection to server socket failed" << std::endl;
 		exit(EXIT_FAILURE);
 	}
-
-	// Creating reciever thread
-	keepGoing = true;
-	recieverThread = std::thread(RecieveFramesPOSIX);
 #elif _WIN32
 	int error;
 	u_long iMode = 1;
@@ -154,7 +128,7 @@ void Client::CreateConnection(std::string ip, std::string port, int mode) {
 	address.sin_port = htons(atoi(port.c_str())); //Port to connect on
 	address.sin_addr.S_un.S_addr = inet_addr(ip.c_str()); //Target IP
 
-														  // Creating server socket for connection
+	// Creating server socket for connection
 	serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (serverSocket == INVALID_SOCKET) {
 		std::cerr << "\nSystem Error\nConnection to server socket failed" << std::endl;
@@ -167,13 +141,13 @@ void Client::CreateConnection(std::string ip, std::string port, int mode) {
 		std::cerr << "\nSystem Error\nConnection to server socket failed" << std::endl;
 		exit(EXIT_FAILURE);
 	}
-
+#endif
+	
+	
 	// Creating reciever thread
 	keepGoing = true;
-	recieverThread = std::thread(RecieveFramesWIN);
-#endif
-
 	userType = mode;
+	recieverThread = std::thread(RecieveFrames);
 	std::cout << "Connection established with server\n";
 }
 
@@ -183,68 +157,26 @@ void Client::CreateConnection(std::string ip, std::string port, int mode) {
 
 
 /* Thread function to continuously recieve frames and set to local frame member */
-#ifdef __linux__
-void Client::RecieveFramesPOSIX() {
+void Client::RecieveFrames() {
 	int i;
-	uint32_t size;
 	int bytesRead;
-	int width, height;
 	char *frameData;
+	uint32_t size = ZERO;
+	char buffer[sizeof(size)];
 	std::vector<char> feriha;
-
-
+	
+	
 	// Reading frame continuously from the socket
 	while (keepGoing) {
 		// Reading frame size first to read and form the frame
+		#ifdef __linux__
 		bytesRead = recv(serverSocket, &size, sizeof(size), 0);
 		if (bytesRead <= ZERO) {
-			std::cout << "Connection terminated by server " << bytesRead << " read\n";
+			std::cout << "Connection terminated by server\n";
 			keepGoing = false;
 			break;
 		}
-
-		// Reading frame data and forming a Mat object that holds the compressed frame
-		frameData = new char[size];
-		for (i = 0; i<size; i += bytesRead) {
-			bytesRead = recv(serverSocket, frameData + i, size - i, 0);
-			if (bytesRead <= 0) {
-				std::cout << "Connection terminated by server\n";
-				keepGoing = false;
-				break;
-			}
-		}
-
-		// Converting char array to vector for cv::Mat transformation
-		for (i = 0; i<size; ++i) {
-			feriha.push_back(frameData[i]);
-		}
-
-
-		cv::Mat bufferFrame(feriha);
-		if (!bufferFrame.empty() && bufferFrame.isContinuous()) {
-			cv::imdecode(bufferFrame, CV_LOAD_IMAGE_COLOR).copyTo(currentFrame);
-		}
-		feriha.clear();
-		delete frameData;
-	}
-
-
-	std::cout << "Connection closed with server\n";
-	close(serverSocket);
-}
-#elif _WIN32
-void Client::RecieveFramesWIN() {
-	int i;
-	int bytesRead;
-	uint32_t size = ZERO;
-	char *frameData;
-	char buffer[sizeof(size)];
-	std::vector<char> feriha;
-
-
-	// Reading frame continuously from the socket
-	while (keepGoing) {
-		// Reading frame size first to read and form the frame
+		#elif _WIN32
 		std::memset(buffer, ZERO, sizeof(size));
 		bytesRead = recv(serverSocket, buffer, sizeof(size), DEFAULT_OPTIONS);
 		if (bytesRead == ZERO || bytesRead == SOCKET_ERROR) {
@@ -255,34 +187,39 @@ void Client::RecieveFramesWIN() {
 		else {
 			size = *(uint32_t*)buffer;
 		}
-
+		#endif
+		
+		
 		// Reading frame data and forming a Mat object that holds the compressed frame
 		frameData = new char[size];
 		for (i = 0; i<size; i += bytesRead) {
+			#ifdef __linux__
+			bytesRead = recv(serverSocket, frameData + i, size - i, 0);
+			if (bytesRead <= ZERO) {
+				std::cout << "Connection terminated by server\n";
+				keepGoing = false;
+				break;
+			}
+			#elif _WIN32
 			bytesRead = recv(serverSocket, frameData + i, size - i, 0);
 			if (bytesRead == ZERO || bytesRead == SOCKET_ERROR) {
 				std::cout << "Connection terminated by server\n";
 				keepGoing = false;
 				break;
 			}
+			#endif
 		}
-
+		
 		// Converting char array to vector for cv::Mat transformation
 		for (i = 0; i<size; ++i) {
 			feriha.push_back(frameData[i]);
 		}
-
+		
 		cv::Mat bufferFrame(feriha);
 		if (!bufferFrame.empty() && bufferFrame.isContinuous()) {
 			cv::imdecode(bufferFrame, CV_LOAD_IMAGE_COLOR).copyTo(currentFrame);
 		}
-
 		feriha.clear();
 		delete frameData;
 	}
-
-
-	std::cout << "Connection closed with server\n";
-	closesocket(serverSocket);
 }
-#endif

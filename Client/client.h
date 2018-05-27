@@ -59,10 +59,8 @@ class Client
 public:
 	bool Continues();
 	bool SuperUser();
-
 	cv::Mat GetFrame();
 	void EndConnection();
-	void MouseEvent(int event, int x, int y);
 	void CreateConnection(std::string ip, std::string port, int mode);
 	void NewCommand(struct ClientMessage);
 
@@ -76,15 +74,13 @@ private:
 	// OS specific declarations
 #ifdef __linux__
 	static int serverSocket;
-	static void RecieveFramesPOSIX();
-	static void SendCommandPOSIX(struct ClientMessage);
 #elif _WIN32
 	static SOCKET serverSocket;
-	static void RecieveFramesWIN();
-	static void SendCommandWIN(SOCKET socket, struct ClientMessage);
 #endif
 	
-	
+	// Static thread function
+	static void RecieveFrames();
+	static void SendCommand(struct ClientMessage msg);
 
 	// Static member variables for threads
 	static bool keepGoing;

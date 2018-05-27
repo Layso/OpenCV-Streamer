@@ -237,7 +237,9 @@ int main( int argc, const char** argv )
         imshow( "CamShift Demo", image );
 
 
-        waitKey(1);
+        if (waitKey(1) == 27) 
+            break;
+        
         if (streamerObject.CommandRecieved()) {
             switch (streamerObject.GetCommand()) {
                 case MESSAGE_NEW_SELECTION:
