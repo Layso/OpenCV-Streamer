@@ -36,6 +36,22 @@
 #define WSADATA_VERSION 0x0202
 #define BUFFER_SIZE sizeof(uint16_t)
 
+#define MESSAGE_NEW_SELECTION 'n'
+#define MESSAGE_MANUEL_MODE 'm'
+#define MESSAGE_BLUETOOTH_MODE 'b'
+#define MESSAGE_STOP 's'
+#define MESSAGE_QUIT 'q'
+
+
+
+
+
+struct ClientMessage {
+	char message;
+	cv::Rect selection;
+};
+
+
 
 
 class Client
@@ -48,27 +64,27 @@ public:
 	void EndConnection();
 	void MouseEvent(int event, int x, int y);
 	void CreateConnection(std::string ip, std::string port, int mode);
+	void NewCommand(struct ClientMessage);
 
 private:
 	// Member variables
 	int userType;
 	bool continues;
-	bool selectObject;
-	cv::Point firstPoint;
-	cv::Point secondPoint;
+	
 	std::thread recieverThread;
 
 	// OS specific declarations
 #ifdef __linux__
-	int serverSocket;
-	static void RecieveFramesPOSIX(int socket);
+	static int serverSocket;
+	static void RecieveFramesPOSIX();
+	static void SendCommandPOSIX(struct ClientMessage);
 #elif _WIN32
-	SOCKET serverSocket;
-	static void RecieveFramesWIN(SOCKET socket);
+	static SOCKET serverSocket;
+	static void RecieveFramesWIN();
+	static void SendCommandWIN(SOCKET socket, struct ClientMessage);
 #endif
-
-	// Static functions for threads
-	static void SendSelection(int socket);
+	
+	
 
 	// Static member variables for threads
 	static bool keepGoing;

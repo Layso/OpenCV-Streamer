@@ -106,7 +106,7 @@ int main( int argc, const char** argv )
 
     Mat frame, hsv, hue, mask, hist, histimg = Mat::zeros(200, 320, CV_8UC3), backproj;
     bool paused = false;
-
+    bool working = true;
 
     /* Setting streamer object to be ready to connect with clients to stream them */
     streamerObject.CreateConnection(argv[1]);
@@ -115,7 +115,7 @@ int main( int argc, const char** argv )
     /* Nothing else needed for streaming */
     
 
-    for(;;)
+    while(working)
     {
         if( !paused )
         {
@@ -235,34 +235,33 @@ int main( int argc, const char** argv )
         }
 
         imshow( "CamShift Demo", image );
-        //imshow( "Histogram", histimg );
 
-        char c = (char)waitKey(10);
-        if( c == 27 ) {
-          break;
-          
-        }
-        switch(c)
-        {
-        case 'b':
-            backprojMode = !backprojMode;
-            break;
-        case 'c':
-            trackObject = 0;
-            histimg = Scalar::all(0);
-            break;
-        case 'h':
-            showHist = !showHist;
-            if( !showHist )
-                destroyWindow( "Histogram" );
-            else
-                namedWindow( "Histogram", 1 );
-            break;
-        case 'p':
-            paused = !paused;
-            break;
-        default:
-            ;
+
+        waitKey(1);
+        if (streamerObject.CommandRecieved()) {
+            switch (streamerObject.GetCommand()) {
+                case MESSAGE_NEW_SELECTION:
+                    // TODO: Change mode
+                    break;
+                    
+                case MESSAGE_MANUEL_MODE:
+                    // TODO: Change mode
+                    trackObject = 0;
+                    break;
+                
+                case MESSAGE_BLUETOOTH_MODE:
+                    // TODO: Change mode
+                    trackObject = 0;
+                    break;
+                
+                case MESSAGE_STOP:
+                    trackObject = 0;
+                    break;
+                
+                case MESSAGE_QUIT:
+                    working = false;
+                    break;
+            }
         }
     }
     

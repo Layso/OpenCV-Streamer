@@ -6,8 +6,11 @@
 bool Client::keepGoing;
 cv::Rect Client::selection;
 cv::Mat Client::currentFrame;
-
-
+#ifdef __linux__
+int Client::serverSocket;
+#elif _WIN32
+SOCKET Client::serverSocket;
+#endif
 
 /* Returns the run status flag */
 bool Client::Continues() {
@@ -46,59 +49,57 @@ void Client::MouseEvent(int event, int x, int y) {
 	/* If button released, set end points and send the selection to the server */
 
 
-	if (selectObject) {
-		selection.x = MIN(x, firstPoint.x);
-		selection.y = MIN(y, firstPoint.y);
-		selection.width = std::abs(x - firstPoint.x);
-		selection.height = std::abs(y - firstPoint.y);
-		selection &= cv::Rect(0, 0, currentFrame.cols, currentFrame.rows);
-		cv::rectangle(currentFrame, cvPoint(firstPoint.x, firstPoint.y), cvPoint(x, y), cvScalar(255, 255, 255));
-	}
-
-	switch (event) {
-	case cv::EVENT_LBUTTONDOWN:
-		firstPoint = cv::Point(x, y);
-		secondPoint = cv::Point(x, y);
-		selection = cv::Rect(x, y, 0, 0);
-		selectObject = true;
-		break;
-
-	case cv::EVENT_LBUTTONUP:
-		secondPoint = cv::Point(x, y);
-		selectObject = false;
-		std::thread Thread(SendSelection, serverSocket);
-		Thread.detach();
-		break;
-	}
+	
 }
 
 
 
-/* Thread function to send the selected are to the server through socket */
-void Client::SendSelection(int socket) {
-	int bytes;
+/*  */
+void Client::NewCommand(struct ClientMessage msg) {
+	#ifdef __linux__
+	std::thread messenger(SendCommandPOSIX, msg);
+	#elif _WIN32
+	std::thread messenger(SendSelectionWIN, msg);
+	#endif
+	messenger.detach();
+}
 
-	if (selection.width == 0 || selection.height == 0) {
-		std::cerr << "Invalid size of selection\n";
-	}
 
-	else {
+
+/* Thread function to send the new command to the server through socket */
 #ifdef __linux__
-		bytes = send(socket, &selection, sizeof(selection), DEFAULT_OPTIONS);
-#elif _WIN32
-		bytes = send(socket, (char*)&selection, sizeof(selection), DEFAULT_OPTIONS);
-#endif
-		std::cout << "New selection sent to the server\n";
+void Client::SendCommandPOSIX(struct ClientMessage msg) {
+	int bytes;
+	
+	
+	bytes = send(serverSocket, &msg, sizeof(msg), DEFAULT_OPTIONS);
+	if (bytes <= ZERO) {
+		std::cerr << "New command couldn't sent to server\n";	
+	}
+	
+	else {
+		std::cout << "New command sent to the server\n";
 	}
 }
+#elif _WIN32
+void Client::SendCommandWIN(struct ClientMessage msg) {
+	int bytes;
+	
+	
+	bytes = send(serverSocket, (char*)&msg, sizeof(msg), DEFAULT_OPTIONS);
+	if (bytes == ZERO || bytes == SOCKET_ERROR) {
+		std::cerr << "New command couldn't sent to server\n"
+	}
+	
+	else {
+		std::cout << "New command sent to the server\n";
+	}
+}
+#endif
 
 
 
-/* Creating server socket for connection */
-/* Preparing socket address */
-/* Connecting to server */
-/* Creating thread to recieve frames */
-/* Creates a connection with given ip and port settings between server */
+/*  */
 void Client::CreateConnection(std::string ip, std::string port, int mode) {
 #ifdef __linux__
 	struct hostent *server;
@@ -126,7 +127,7 @@ void Client::CreateConnection(std::string ip, std::string port, int mode) {
 
 	// Creating reciever thread
 	keepGoing = true;
-	recieverThread = std::thread(RecieveFramesPOSIX, serverSocket);
+	recieverThread = std::thread(RecieveFramesPOSIX);
 #elif _WIN32
 	int error;
 	u_long iMode = 1;
@@ -169,7 +170,7 @@ void Client::CreateConnection(std::string ip, std::string port, int mode) {
 
 	// Creating reciever thread
 	keepGoing = true;
-	recieverThread = std::thread(RecieveFramesWIN, serverSocket);
+	recieverThread = std::thread(RecieveFramesWIN);
 #endif
 
 	userType = mode;
@@ -183,7 +184,7 @@ void Client::CreateConnection(std::string ip, std::string port, int mode) {
 
 /* Thread function to continuously recieve frames and set to local frame member */
 #ifdef __linux__
-void Client::RecieveFramesPOSIX(int socket) {
+void Client::RecieveFramesPOSIX() {
 	int i;
 	uint32_t size;
 	int bytesRead;
@@ -195,7 +196,7 @@ void Client::RecieveFramesPOSIX(int socket) {
 	// Reading frame continuously from the socket
 	while (keepGoing) {
 		// Reading frame size first to read and form the frame
-		bytesRead = recv(socket, &size, sizeof(size), 0);
+		bytesRead = recv(serverSocket, &size, sizeof(size), 0);
 		if (bytesRead <= ZERO) {
 			std::cout << "Connection terminated by server " << bytesRead << " read\n";
 			keepGoing = false;
@@ -205,7 +206,7 @@ void Client::RecieveFramesPOSIX(int socket) {
 		// Reading frame data and forming a Mat object that holds the compressed frame
 		frameData = new char[size];
 		for (i = 0; i<size; i += bytesRead) {
-			bytesRead = recv(socket, frameData + i, size - i, 0);
+			bytesRead = recv(serverSocket, frameData + i, size - i, 0);
 			if (bytesRead <= 0) {
 				std::cout << "Connection terminated by server\n";
 				keepGoing = false;
@@ -229,10 +230,10 @@ void Client::RecieveFramesPOSIX(int socket) {
 
 
 	std::cout << "Connection closed with server\n";
-	close(socket);
+	close(serverSocket);
 }
 #elif _WIN32
-void Client::RecieveFramesWIN(SOCKET socket) {
+void Client::RecieveFramesWIN() {
 	int i;
 	int bytesRead;
 	uint32_t size = ZERO;
@@ -245,7 +246,7 @@ void Client::RecieveFramesWIN(SOCKET socket) {
 	while (keepGoing) {
 		// Reading frame size first to read and form the frame
 		std::memset(buffer, ZERO, sizeof(size));
-		bytesRead = recv(socket, buffer, sizeof(size), DEFAULT_OPTIONS);
+		bytesRead = recv(serverSocket, buffer, sizeof(size), DEFAULT_OPTIONS);
 		if (bytesRead == ZERO || bytesRead == SOCKET_ERROR) {
 			std::cout << "Connection terminated by server\n";
 			keepGoing = false;
@@ -258,7 +259,7 @@ void Client::RecieveFramesWIN(SOCKET socket) {
 		// Reading frame data and forming a Mat object that holds the compressed frame
 		frameData = new char[size];
 		for (i = 0; i<size; i += bytesRead) {
-			bytesRead = recv(socket, frameData + i, size - i, 0);
+			bytesRead = recv(serverSocket, frameData + i, size - i, 0);
 			if (bytesRead == ZERO || bytesRead == SOCKET_ERROR) {
 				std::cout << "Connection terminated by server\n";
 				keepGoing = false;
@@ -282,6 +283,6 @@ void Client::RecieveFramesWIN(SOCKET socket) {
 
 
 	std::cout << "Connection closed with server\n";
-	closesocket(socket);
+	closesocket(serverSocket);
 }
 #endif

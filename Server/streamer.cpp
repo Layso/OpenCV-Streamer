@@ -1,9 +1,12 @@
 #include "streamer.h"
+
 #include <signal.h>
 #include <sys/poll.h>
 
 
 bool Streamer::keepServing;
+char Streamer::currentCommand;
+bool Streamer::commandRecieved;
 bool Streamer::selectionRecieved;
 cv::Rect Streamer::currentSelection;
 cv::VideoCapture Streamer::frameSource;
@@ -42,6 +45,21 @@ cv::Rect Streamer::GetNewSelection() {
 
 
 
+/*  */
+bool Streamer::CommandRecieved() {
+	return commandRecieved;
+}
+
+
+
+/*  */
+char Streamer::GetCommand() {
+	commandRecieved = false;
+	return currentCommand;
+}
+	
+	
+	
 /* Creates a socket with given ip and port settings to communicate with clients */
 void Streamer::CreateConnection(string port) {
 	struct sockaddr_in socketAddress;
@@ -100,18 +118,27 @@ void Streamer::SetCaptureSource(cv::VideoCapture newSource) {
 
 
 /* Thread function to wait for incoming selections from clients */
-void Streamer::RecieveSelection(int socket) {
+void Streamer::RecieveMessage(int socket) {
+	struct ClientMessage msg;
 	cv::Rect selection;
 	int bytes;
 
 
 	do {
 		/* If a valid recieving has done, set the recieved selection and raise flag */
-		bytes = recv(socket, &selection, sizeof(selection), DEFAULT_OPTIONS);
+		bytes = recv(socket, &msg, sizeof(msg), DEFAULT_OPTIONS);
 		if (bytes > ZERO) {
-			selectionRecieved = true;
-			currentSelection = selection;
-			std::cout << "New selection recieved from client #" << socket << std::endl;
+			currentCommand = msg.message;
+			commandRecieved = true;
+			if (currentCommand == MESSAGE_NEW_SELECTION) {
+					currentSelection = msg.selection;
+					selectionRecieved = true;
+					std::cout << "New selection recieved" << std::endl;		
+			}
+			
+			else {
+				std::cout << "New command recieved" << std::endl;
+			}
 		}
 	} while (bytes > ZERO && keepServing);
 }
@@ -135,7 +162,7 @@ void Streamer::AcceptClients(int socket) {
 		else {
 			std::cout << "Creating new thread for client #" << clientSocket << std::endl;
 			std::thread sender(ServeClient, clientSocket);
-			std::thread reciever(RecieveSelection, clientSocket);
+			std::thread reciever(RecieveMessage, clientSocket);
 			workerList.push_back(std::move(sender));
 			workerList.push_back(std::move(reciever));
 		}
